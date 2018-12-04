@@ -42,11 +42,11 @@ domain300w.txt 	3/4的原始数据 </br>
 	1. 通过爬虫爬取给定网站列表的内容, 并提取文本信息, 进行分词, 得到原始数据 (**这里管哥补充一下**)      
 	2. 根据之前项目得到一个赌博/色情网站的常用关键词列表(见source/word.pick文件)     
 
-	<img src="img/key-word.png" width = 50% height = 80% /> </br>     
+	<img src="img/key-word.png" width =10% height = 10% /> </br>     
 
 	3. 用脚本和人工的方法筛选出部分赌博/色情网站页面, 作为训练数据(url-词语列表-判别结果 source/word_x.txt)          
             
-    <img src="img/train-data.png" width = 50% height = 80% /> </br>          
+	<img src="img/train-data.png" width = 50% height = 80% /> </br>          
             
 	4. 特征提取           
 	常见的提取文本特征的方法有one-hot和TF-IDF两种, 与将词频计算在内的TF-IDF方法相比, one-hot只考虑了词语的出现与否(本项目采用one-hot编码)           
