@@ -11,7 +11,6 @@ def readFile():
 	word_dict={}
 	for index,word in enumerate(word_idx):
 		word_dict[word] = index
-		print word
     
 	return word_dict,word_idx
 
@@ -56,21 +55,22 @@ def gene_feature(word_dict,word_idx,count):
 
 	return train_data,train_targets
 
-def predict_result(word_idx,word_dict,model):
+def predict_result(word_idx,word_dict,model,n):
 	#统计测试文件行数
-	with open("../source/word_5.txt") as f:
+	filename = "../source/word_" + str(n) + ".txt"
+	with open(filename) as f:
 		count = len(f.readlines())
     
 	#处理测试数据
-	f = open('../source/label_5.txt','a')
+	f = open('../source/label.txt','a')
 	for i in range(1,count):
 		if i%2000 == 0:
 			process = float(i)/float(count)
 			p = "%.2f%%" % (process * 100)
-			print p
+			print str(n) , ' ' ,p
 		if i%2 ==0 :
 			continue
-		line = linecache.getline('../source/word_5.txt',i)
+		line = linecache.getline(filename,i)
 
 		word_list = line.split(',')
 		url = word_list[0]
@@ -87,7 +87,20 @@ def predict_result(word_idx,word_dict,model):
 		label = np.argmax(predict)
 
 		f.write(url+","+str(label)+'\n')
+	f.close()
 
+def result_count():
+	with open('../source/label.txt') as f:
+		result_list = f.readlines()
+	w_f = open('../source/porn_or_gamble.txt','a')
+	for line in result_list:
+		line = line.strip('\n')
+		l = line.split(',')
+		if len(l) > 1:
+			if int(l[1]) == 1 or int(l[1]) == 2:
+				w_f.write(l[0] + "," + l[1] + "\n")
+
+	f.close()
 
 if __name__ == "__main__":
 	word_dict,word_idx = readFile()
@@ -96,7 +109,11 @@ if __name__ == "__main__":
 	train_data,train_targets = gene_feature(word_dict,word_idx,count/2)
 	model = mt.build_model(train_data)
 	model = mt.k_train_data(train_data,train_targets,model)
-	predict_result(word_idx,word_dict,model)
+	for i in range(1,6):
+		predict_result(word_idx,word_dict,model,i)
+	#result_count()
+
+
       
 
 
