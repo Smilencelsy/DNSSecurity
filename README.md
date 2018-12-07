@@ -152,7 +152,11 @@ domain300w.txt 	3/4的原始数据 </br>
 
 	<img src="img/request_type.png" width = 70% height = 70% /> </br>
 
+    从解析的ip个数来说,两者的分布十分相似:           
 
+    <img src="img/ip_count.png" width = 70% height = 70% /> </br>            
+
+    
 * 分类算法         
   随机森林分类器         
 

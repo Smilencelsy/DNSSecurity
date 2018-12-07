@@ -310,12 +310,27 @@ def inter_analysis_1():
 	for ele in bad_lines:
 		ele = ele.strip('\n').split(',')
 		if ele:
-			bad_dict[ele[1]] = {'req_type':ele[2],'TTL':ele[3]}
+			if ele[4] == 'A' or ele[4] == 'AAAA' or ele[4] == 'CNAME' or ele[4] == 'MX':
+				tmp_l = ele[5].strip('\r').split(';')
+				tmp = []
+				for every in tmp_l:
+					if re.match(r'((25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d)))\.){3}(25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d)))',every):
+						tmp.append(every)
+				bad_dict[ele[1]] = {'req_type':ele[4],'TTL':ele[3],'result':tmp}
+			else:
+				bad_dict[ele[1]] = {'req_type':ele[4],'TTL':ele[3],'result':[0]}
 	for ele in white_lines:
 		ele = ele.strip('\n').split(',')
 		if ele:
-			white_dict[ele[1]] = {'req_type':ele[2],'TTL':ele[3]}	
-
+			if ele[4] == 'A' or ele[4] == 'AAAA' or ele[4] == 'CNAME' or ele[4] == 'MX':
+				tmp_l = ele[5].strip('\r').split(';')
+				tmp = []
+				for every in tmp_l:
+					if re.match(r'((25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d)))\.){3}(25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d)))',every):
+						tmp.append(every)
+				white_dict[ele[1]] = {'req_type':ele[4],'TTL':ele[3],'result':tmp}
+			else:
+				white_dict[ele[1]] = {'req_type':ele[4],'TTL':ele[3],'result':[0]}
 
 	bad_ttl_dict = {}
 	bad_res_dict = {}
@@ -354,28 +369,62 @@ def inter_analysis_1():
 		x_line2.append(k)
 		y_line2.append(int(bad_ttl_dict[str(k)]))	
 
+	#绘制ttl的对比图
 	plt.plot(x_line2,y_line2,color='r',label='bad_list')
 	plt.plot(x_line1,y_line1,color='g',label='white_list')
 	plt.title('TTL') #标题
 	plt.legend()
 	plt.show()
 
-	x_line1 = []
-	x_line2 = []
-	y_line1 = []
-	y_line2 = []
-	for k in white_res_dict:
-		x_line1.append(k)
-		y_line1.append(int(white_res_dict[k]))
-	for k in bad_res_dict:
-		x_line2.append(k)
-		y_line2.append(int(bad_res_dict[k]))	
-
-	plt.plot(x_line2,y_line2,color='r',label='bad_list')
-	plt.plot(x_line1,y_line1,color='g',label='white_list')
+	index = white_res_dict.keys()
+	bad_y = []
+	white_y = []
+	for i in range(len(index)):
+		white_y.append(white_res_dict[index[i]])	
+		if index[i] in bad_res_dict.keys():
+			bad_y.append(bad_res_dict[index[i]])
+		else:
+			bad_y.append(0)
+	#绘制响应类型的对比图
+	ind = np.arange(len(white_res_dict.keys()))
+	bar_width = 0.3
+	plt.bar(ind , bad_y, width=0.3 , color='r',label='bad_list')
+	plt.bar(ind + bar_width , white_y, width=0.3 , color='g',label='white_list')
+	plt.xticks(tuple(x*1.05 for x in range(len(white_res_dict.keys()))),tuple(white_res_dict.keys()))
 	plt.title('request_type') #标题
 	plt.legend()
 	plt.show()	
+
+	#绘制IP个数的对比图
+	bad_ip_list = {}
+	white_ip_list = {}
+	for key in bad_dict:
+		if len(bad_dict[key]['result']) in bad_ip_list.keys():
+			bad_ip_list[len(bad_dict[key]['result'])] += 1
+		else:
+			bad_ip_list[len(bad_dict[key]['result'])] = 1
+	for key in white_dict:
+		if len(white_dict[key]['result']) in white_ip_list.keys():
+			white_ip_list[len(white_dict[key]['result'])] += 1
+		else:
+			white_ip_list[len(white_dict[key]['result'])] = 1
+
+	x_line5 = []
+	y_line5 = []
+	x_line6 = []
+	y_line6 = []
+	for k in bad_ip_list:
+		x_line5.append(k)
+		y_line5.append(bad_ip_list[k])
+	for k in white_ip_list:
+		x_line6.append(k)
+		y_line6.append(white_ip_list[k])	
+
+	plt.plot(x_line5,y_line5,color='r',label='bad_list')
+	plt.plot(x_line6,y_line6,color='g',label='white_list')
+	plt.title('ip') #标题
+	plt.legend()
+	plt.show()
 
 
 if __name__ == "__main__":
