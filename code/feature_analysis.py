@@ -6,6 +6,9 @@ import linecache
 import re
 import matplotlib.pyplot as plt
 import time
+import dns
+from dns import resolver
+
 #处理数据
 def readfiles():
 	with open('../source/all_list_results.txt') as f1:
@@ -193,8 +196,187 @@ def x_y_generate(bad_feature_dict,white_feature_dict,feature_name):
 
 
 #网络特征
-def inter_analysis(bad_dict,white_dict):
-	pass
+def inter_request(bad_dict,filename):
+	start = time.time()
+	bad_inter_dict = {}
+	for bad_url in bad_dict.keys():
+		try:
+			bad_inter_dict[bad_url] = {}
+			ans = resolver.query(bad_url,'A')
+			bad_inter_dict[bad_url]['TTL'] = ans.rrset.ttl
+			bad_inter_dict[bad_url]['req_type'] = 'A'
+			for o in ans.rrset:
+				bad_inter_dict[bad_url]['IP'] = str(o)
+			bad_inter_dict[bad_url]['except'] = 0
+		except resolver.NoAnswer:
+			bad_inter_dict[bad_url]['except'] = 1
+		except resolver.NXDOMAIN:
+			bad_inter_dict[bad_url]['except'] = 1
+		except resolver.Timeout:
+			bad_inter_dict[bad_url]['except'] = 1
+
+	for key in bad_inter_dict:
+		if int(bad_inter_dict[key]['except']) == 1:
+			try:
+				ans = resolver.query(bad_url,'CNAME')
+				bad_inter_dict[bad_url]['TTL'] = ans.rrset.ttl
+				bad_inter_dict[bad_url]['req_type'] = 'CNAME'
+				for o in ans.rrset:
+					bad_inter_dict[bad_url]['IP'] = str(o)
+				bad_inter_dict[bad_url]['except'] = 0
+			except resolver.NoAnswer:
+				bad_inter_dict[bad_url]['except'] = 1
+			except resolver.NXDOMAIN:
+				bad_inter_dict[bad_url]['except'] = 1
+			except resolver.Timeout:
+				bad_inter_dict[bad_url]['except'] = 1
+
+	w_f1 = open(filename,'a')
+	for key in bad_inter_dict:
+		if int(bad_inter_dict[key]['except']) == 0:
+			w_f1.write(key + ',' + str(bad_inter_dict[key]['req_type']) + ',' + str(bad_inter_dict[key]['TTL']) + ',' + str(bad_inter_dict[key]['IP']) + '\n')
+		else:
+			w_f1.write(key + ',exception\n')
+
+	w_f1.close()
+	end = time.time()
+	print end-start
+
+#统计网络特征
+def inter_analysis():
+	with open('../source/bad_dict_dnsrequest.txt') as f1:
+		bad_lines = f1.readlines()
+	with open('../source/white_dict_dnsrequest.txt') as f2:
+		white_lines = f2.readlines()	
+	bad_dict = {}
+	white_dict = {}
+	print len(bad_lines)
+	print len(white_lines)
+	for ele in bad_lines:
+		ele = ele.strip('\n').split(',')
+		if ele[1] != 'exception':
+			bad_dict[ele[0]] = {'req_type':ele[1],'TTL':ele[2],'result':ele[3]}
+	for ele in white_lines:
+		ele = ele.strip('\n').split(',')
+		if ele[1] != 'exception':
+			white_dict[ele[0]] = {'req_type':ele[1],'TTL':ele[2],'result':ele[3]}	
+
+	#统计TTL
+	bad_ttl_dict = {}
+	for key in bad_dict:
+		if str(bad_dict[key]['TTL']) in bad_ttl_dict.keys():
+			bad_ttl_dict[str(bad_dict[key]['TTL'])] += 1
+		else:
+			bad_ttl_dict[str(bad_dict[key]['TTL'])] = 1
+	
+	white_ttl_dict = {}
+	for key in white_dict:
+		if str(white_dict[key]['TTL']) in white_ttl_dict.keys():
+			white_ttl_dict[str(white_dict[key]['TTL'])] += 1
+		else:
+			white_ttl_dict[str(white_dict[key]['TTL'])] = 1	
+	print len(bad_ttl_dict)
+	print len(white_ttl_dict)
+
+
+	x_line1 = []
+	x_line2 = []
+	y_line1 = []
+	y_line2 = []
+	l1 = sorted(int(x) for x in white_ttl_dict.keys())
+	for k in l1:
+		x_line1.append(k)
+		y_line1.append(int(white_ttl_dict[str(k)]))
+	l2 = sorted(int(x) for x in bad_ttl_dict.keys())
+	for k in l2:
+		x_line2.append(k)
+		y_line2.append(int(bad_ttl_dict[str(k)]))	
+
+	plt.plot(x_line2,y_line2,color='r',label='bad_list')
+	plt.plot(x_line1,y_line1,color='g',label='white_list')
+	plt.title('TTL') #标题
+	plt.legend()
+	plt.show()
+
+	#统计请求类型
+
+def inter_analysis_1():
+	with open('../source/bad_list_dnsinfo.txt') as f1:
+		bad_lines = f1.readlines()
+	with open('../source/white_list_dnsinfo.txt') as f2:
+		white_lines = f2.readlines()	
+	bad_dict = {}
+	white_dict = {}
+	for ele in bad_lines:
+		ele = ele.strip('\n').split(',')
+		if ele:
+			bad_dict[ele[1]] = {'req_type':ele[2],'TTL':ele[3]}
+	for ele in white_lines:
+		ele = ele.strip('\n').split(',')
+		if ele:
+			white_dict[ele[1]] = {'req_type':ele[2],'TTL':ele[3]}	
+
+
+	bad_ttl_dict = {}
+	bad_res_dict = {}
+	for key in bad_dict:
+		if str(bad_dict[key]['TTL']) in bad_ttl_dict.keys():
+			bad_ttl_dict[str(bad_dict[key]['TTL'])] += 1
+		else:
+			bad_ttl_dict[str(bad_dict[key]['TTL'])] = 1
+		if bad_dict[key]['req_type'] in bad_res_dict.keys():
+			bad_res_dict[bad_dict[key]['req_type']] += 1
+		else:
+			bad_res_dict[bad_dict[key]['req_type']] = 1
+	
+	white_ttl_dict = {}
+	white_res_dict = {}
+	for key in white_dict:
+		if white_dict[key]['TTL'] in white_ttl_dict.keys():
+			white_ttl_dict[white_dict[key]['TTL']] += 1
+		else:
+			white_ttl_dict[white_dict[key]['TTL']] = 1	
+		if white_dict[key]['req_type'] in white_res_dict.keys():
+			white_res_dict[white_dict[key]['req_type']] += 1
+		else:
+			white_res_dict[white_dict[key]['req_type']] = 1
+
+	x_line1 = []
+	x_line2 = []
+	y_line1 = []
+	y_line2 = []
+	l1 = sorted(int(x) for x in white_ttl_dict.keys())
+	for k in l1:
+		x_line1.append(k)
+		y_line1.append(int(white_ttl_dict[str(k)]))
+	l2 = sorted(int(x) for x in bad_ttl_dict.keys())
+	for k in l2:
+		x_line2.append(k)
+		y_line2.append(int(bad_ttl_dict[str(k)]))	
+
+	plt.plot(x_line2,y_line2,color='r',label='bad_list')
+	plt.plot(x_line1,y_line1,color='g',label='white_list')
+	plt.title('TTL') #标题
+	plt.legend()
+	plt.show()
+
+	x_line1 = []
+	x_line2 = []
+	y_line1 = []
+	y_line2 = []
+	for k in white_res_dict:
+		x_line1.append(k)
+		y_line1.append(int(white_res_dict[k]))
+	for k in bad_res_dict:
+		x_line2.append(k)
+		y_line2.append(int(bad_res_dict[k]))	
+
+	plt.plot(x_line2,y_line2,color='r',label='bad_list')
+	plt.plot(x_line1,y_line1,color='g',label='white_list')
+	plt.title('request_type') #标题
+	plt.legend()
+	plt.show()	
+
 
 if __name__ == "__main__":
 #	readfiles() 处理判别结果/黑名单/白名单数据
@@ -202,8 +384,11 @@ if __name__ == "__main__":
 	#统计分析域名的词法特征
 	bad_dict_feature = lexical_count(bad_dict.keys())
 	white_dict_feature = lexical_count(white_dict.keys())
-	lexical_draw(bad_dict_feature,white_dict_feature)
+	#lexical_draw(bad_dict_feature,white_dict_feature)
 
 	#统计分析域名的网络特征
-	inter_analysis(bad_dict,white_dict)
+	#inter_analysis(inter_request,'../source/bad_dict_dnsrequest.txt')
+	#inter_analysis(inter_request,'../source/white_dict_dnsrequest.txt')
+	inter_analysis()
+	inter_analysis_1()
 
